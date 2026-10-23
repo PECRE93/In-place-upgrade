@@ -10,18 +10,22 @@ permissions:
 
 jobs:
   build:
-    name: Analyze and test (${{ matrix.shell }})
-    runs-on: windows-latest
+    name: Analyze and test (${{ matrix.os }}, ${{ matrix.shell }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # The integration tests run the collectors on both Windows Server versions that runners offer.
+        os: [windows-2022, windows-2025]
         # powershell = Windows PowerShell 5.1, as on the servers; pwsh = PowerShell 7.
         shell: [powershell, pwsh]
     defaults:
       run:
         shell: ${{ matrix.shell }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install build dependencies
         run: ./build.ps1 -Task Bootstrap
@@ -29,9 +33,9 @@ jobs:
       - name: Analyze and test
         run: ./build.ps1 -Task Analyze, Test
 
-      - name: Upload test results
+      - name: Upload test results and code coverage
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: test-results-${{ matrix.shell }}
-          path: out/testResults.xml
+          name: test-results-${{ matrix.os }}-${{ matrix.shell }}
+          path: out/*.xml

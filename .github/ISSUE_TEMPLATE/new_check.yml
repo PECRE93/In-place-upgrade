@@ -1,0 +1,27 @@
+name: New check
+description: Suggest something the pre- or post-check should verify.
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - Pre-check, before the upgrade
+        - Post-check, after the upgrade
+    validations:
+      required: true
+  - type: textarea
+    id: check
+    attributes:
+      label: What should be checked?
+      description: What must be true, and whether the check should fail or warn when it isn't.
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why?
+      description: What goes wrong without the check. Link Microsoft documentation if there is any.
+    validations:
+      required: true

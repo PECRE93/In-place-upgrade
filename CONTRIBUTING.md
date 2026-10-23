@@ -1,5 +1,7 @@
 # Contributing
 
+Report bugs and suggest checks with the [issue templates](https://github.com/PECRE93/In-place-upgrade/issues/new/choose). Report security vulnerabilities privately, as described in [SECURITY.md](SECURITY.md).
+
 ## Workflow
 
 1. Create a branch from `main`: `feature/<name>`, `fix/<name>` or `docs/<name>`.
@@ -49,7 +51,7 @@ Write an [ADR](docs/adr/README.md) when you change how the tool is structured, w
 ## Adding data to the snapshot
 
 1. Add `src/InPlaceUpgrade/Private/Collectors/Get-Ipu<Name>Info.ps1`. It returns plain objects that survive a JSON round trip and throws when it can't collect. Return arrays with a leading comma (`, @($items)`) so that empty and single-item arrays aren't unrolled.
-2. Register it in `Get-IpuSnapshot`, and add the section to `New-IpuTestSnapshot` in `tests/TestHelpers.ps1`.
+2. Register it in `Get-IpuSnapshot`, add the section to `New-IpuTestSnapshot` in `tests/TestHelpers.ps1`, and describe it in [docs/report.md](docs/report.md).
 3. A new section is a minor change. Renaming, removing or reshaping a section is a breaking change: bump `$script:SnapshotSchemaVersion` in `InPlaceUpgrade.psm1` and the major version ([ADR-0004](docs/adr/0004-versioning-and-releases.md)).
 
 ## Releasing
@@ -62,4 +64,4 @@ Write an [ADR](docs/adr/README.md) when you change how the tool is structured, w
    git push origin vx.y.z
    ```
 
-3. The release workflow builds, tests and publishes the GitHub release with the module zip and the release notes.
+3. The release workflow builds and tests, then publishes the GitHub release with the zip, its SHA-256 checksum and the release notes. In a public repository it also signs the build provenance of the zip.

@@ -1,0 +1,48 @@
+name: Bug report
+description: A check gives a wrong result, or the tool fails.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is public. Remove server names, domains, IP addresses and anything else internal before you paste messages or reports.
+        Report security vulnerabilities privately, as described in the [security policy](https://github.com/PECRE93/In-place-upgrade/security/policy).
+  - type: input
+    id: version
+    attributes:
+      label: Tool version
+      description: ToolVersion in the report, or ModuleVersion in InPlaceUpgrade.psd1.
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: upgrade
+    attributes:
+      label: Upgrade
+      description: Source and target version, edition, and where the server runs.
+      placeholder: Windows Server 2016 Datacenter to 2022, Azure VM
+    validations:
+      required: true
+  - type: dropdown
+    id: powershell
+    attributes:
+      label: PowerShell
+      options:
+        - Windows PowerShell 5.1
+        - Windows PowerShell 4.0
+        - PowerShell 7
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened, and what did you expect?
+      description: Include the check ID, its status and its message, or the full error.
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Report excerpt
+      description: The relevant part of the JSON report, such as the check's result and the snapshot section it reads.
+      render: json

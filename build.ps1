@@ -5,8 +5,8 @@
 .DESCRIPTION
     Bootstrap  Installs the pinned versions of Pester and PSScriptAnalyzer for the current user.
     Analyze    Runs PSScriptAnalyzer on src and scripts with PSScriptAnalyzerSettings.psd1.
-    Test       Runs the Pester tests and writes out/testResults.xml.
-    Package    Writes out/InPlaceUpgrade-<version>.zip (scripts and module) and out/release-notes.md (taken from CHANGELOG.md).
+    Test       Runs the Pester tests with code coverage and writes out/testResults.xml and out/coverage.xml.
+    Package    Writes out/InPlaceUpgrade-<version>.zip (scripts and module), its SHA-256 checksum and out/release-notes.md (taken from CHANGELOG.md).
 
 .EXAMPLE
     ./build.ps1 -Task Bootstrap, Analyze, Test
@@ -72,11 +72,31 @@ if ($Task -contains 'Test') {
     New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
     $configuration = New-PesterConfiguration
     $configuration.Run.Path = Join-Path -Path $PSScriptRoot -ChildPath 'tests'
-    $configuration.Run.Throw = $true
+    $configuration.Run.PassThru = $true
     $configuration.Output.Verbosity = 'Detailed'
     $configuration.TestResult.Enabled = $true
     $configuration.TestResult.OutputPath = Join-Path -Path $outputPath -ChildPath 'testResults.xml'
-    Invoke-Pester -Configuration $configuration
+    $configuration.CodeCoverage.Enabled = $true
+    $configuration.CodeCoverage.Path = @($sourcePath, $scriptsPath)
+    $configuration.CodeCoverage.OutputPath = Join-Path -Path $outputPath -ChildPath 'coverage.xml'
+    $result = Invoke-Pester -Configuration $configuration
+
+    # GitHub Actions shows the summary on the workflow run page.
+    if ($env:GITHUB_STEP_SUMMARY) {
+        $os = (Get-CimInstance -ClassName Win32_OperatingSystem).Caption
+        $summary = @(
+            "### Tests on $os, PowerShell $($PSVersionTable.PSVersion)"
+            ''
+            '| Passed | Failed | Skipped | Code coverage |'
+            '| ---: | ---: | ---: | ---: |'
+            ('| {0} | {1} | {2} | {3:N1} % |' -f $result.PassedCount, $result.FailedCount, $result.SkippedCount, $result.CodeCoverage.CoveragePercent)
+            ''
+        )
+        [System.IO.File]::AppendAllText($env:GITHUB_STEP_SUMMARY, ($summary -join "`n") + "`n")
+    }
+    if ($result.Result -ne 'Passed') {
+        throw "Pester reported $($result.FailedCount) failed test(s) and $($result.FailedContainersCount) failed container(s)."
+    }
 }
 
 if ($Task -contains 'Package') {
@@ -85,6 +105,8 @@ if ($Task -contains 'Package') {
 
     $zipPath = Join-Path -Path $outputPath -ChildPath "$moduleName-$version.zip"
     Compress-Archive -Path $sourcePath, (Join-Path -Path $scriptsPath -ChildPath '*.ps1') -DestinationPath $zipPath -Force
+    $hash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -Path "$zipPath.sha256" -Value "$hash  $(Split-Path -Path $zipPath -Leaf)" -Encoding Ascii
 
     # The release notes are this version's section of CHANGELOG.md.
     $changelog = @(Get-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath 'CHANGELOG.md'))

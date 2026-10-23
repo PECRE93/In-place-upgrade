@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - PowerShell module `InPlaceUpgrade` with `Invoke-IpuPreCheck` and `Invoke-IpuPostCheck`.
+- Scripts `Invoke-PreUpgradeCheck.ps1` and `Invoke-PostUpgradeCheck.ps1` in `scripts/`, which run the checks and return the result as an exit code (0 = Pass, 1 = Fail or the check couldn't run, 2 = Warning). The release zip contains them next to the module.
 - Snapshot of the server (operating system, domain membership, volumes, pending restart, services, roles and features, applications, listening ports, NIC teams, licensing, Azure metadata), saved in the pre-check report as the baseline for the post-check.
 - Pre-upgrade checks PRE-001 to PRE-009 and post-upgrade checks POST-001 to POST-008, see [docs/checks.md](docs/checks.md).
 - JSON reports in `%ProgramData%\InPlaceUpgrade` and a color-coded console summary.

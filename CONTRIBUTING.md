@@ -18,6 +18,7 @@ Write an [ADR](docs/adr/README.md) when you change how the tool is structured, w
 - Approved verbs (`Get-Verb`) and the `Ipu` noun prefix.
 - `Set-StrictMode -Version Latest` applies to the whole module. Read properties that may not exist with `Get-IpuProperty`.
 - **Collectors only read.** Nothing in the module may change the server.
+- **Scripts in `scripts/` are thin entry points**: they load the module, call one public command and turn the result into an exit code. Put logic in the module, where it's tested. Script names, parameters and exit codes are a public interface ([ADR-0005](docs/adr/0005-entry-point-scripts.md)).
 
 ## Adding a check
 

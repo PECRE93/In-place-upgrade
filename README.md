@@ -20,13 +20,12 @@ The tool only reads from the server. The JSON report is the only thing it writes
 
 ## Usage
 
-1. Copy the `InPlaceUpgrade` folder to the server, for example to `C:\Tools\InPlaceUpgrade`. Take it from the zip of a [release](https://github.com/PECRE93/In-place-upgrade/releases) or from `src/`. If you downloaded the zip, unblock it before you extract it: `Unblock-File .\InPlaceUpgrade-x.y.z.zip`.
+1. Download the zip of a [release](https://github.com/PECRE93/In-place-upgrade/releases), unblock it with `Unblock-File .\InPlaceUpgrade-x.y.z.zip` and extract it on the server, for example to `C:\Tools\InPlaceUpgrade`. The zip holds the two scripts from [scripts/](scripts) and the `InPlaceUpgrade` module folder. A copy of the repository works as well.
 
 2. **Before the upgrade**, in an elevated Windows PowerShell session:
 
    ```powershell
-   Import-Module C:\Tools\InPlaceUpgrade
-   Invoke-IpuPreCheck -TargetVersion 2022
+   C:\Tools\InPlaceUpgrade\Invoke-PreUpgradeCheck.ps1 -TargetVersion 2022
    ```
 
    Fix every FAIL, review every WARNING and run it again. The report, which includes the baseline, is saved as `C:\ProgramData\InPlaceUpgrade\<computer>-pre-<timestamp>.json`.
@@ -36,8 +35,7 @@ The tool only reads from the server. The JSON report is the only thing it writes
 4. **After the upgrade**, once the server has been up for a few minutes:
 
    ```powershell
-   Import-Module C:\Tools\InPlaceUpgrade
-   Invoke-IpuPostCheck
+   C:\Tools\InPlaceUpgrade\Invoke-PostUpgradeCheck.ps1
    ```
 
    It compares the server with the newest baseline in `C:\ProgramData\InPlaceUpgrade`. Use `-BaselinePath` to pick another one.
@@ -57,7 +55,17 @@ Overall: FAIL
 Report:  C:\ProgramData\InPlaceUpgrade\SRV01-pre-20261023T080000Z.json
 ```
 
-Use `-OutputPath` to write the reports somewhere else, and `-PassThru` to get the report as an object in scripts; `Get-Help Invoke-IpuPreCheck -Full` has the details. Keep a copy of the reports off the server, so you still have them if the upgrade fails.
+Both scripts take `-OutputPath` to write the reports somewhere else, and `Get-Help` shows all their parameters. Keep a copy of the reports off the server, so you still have them if the upgrade fails.
+
+The scripts set an exit code, so other tools can run them with `powershell.exe -File` and act on the result:
+
+| Exit code | Result |
+| --- | --- |
+| 0 | Pass |
+| 1 | Fail, or the check couldn't run |
+| 2 | Warning |
+
+In your own PowerShell code, you can import the module instead and call `Invoke-IpuPreCheck` or `Invoke-IpuPostCheck` with `-PassThru` to get the report as an object.
 
 On Azure VMs, also consider Microsoft's [Windows OS Upgrade Assessment Tool](https://learn.microsoft.com/troubleshoot/azure/virtual-machines/windows/windows-vm-osupgradeassessment-tool), which checks Azure features such as Trusted Launch.
 
@@ -67,6 +75,7 @@ On Azure VMs, also consider Microsoft's [Windows OS Upgrade Assessment Tool](htt
 .github/                   CI and release workflows, pull request template, Dependabot
 docs/adr/                  Architecture decision records
 docs/checks.md             Catalogue of all checks
+scripts/                   Scripts to run on the servers: pre- and post-check
 src/InPlaceUpgrade/        The module
   Public/                  Exported commands
   Private/                 Internal functions

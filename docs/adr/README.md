@@ -8,6 +8,7 @@ An architecture decision record (ADR) captures one significant decision: its con
 | [0002](0002-windows-powershell-module.md) | Implement the tool as a Windows PowerShell module | Accepted |
 | [0003](0003-snapshot-baseline-and-declarative-checks.md) | Snapshot, baseline and declarative checks | Accepted |
 | [0004](0004-versioning-and-releases.md) | Versioning, changelog and releases | Accepted |
+| [0005](0005-entry-point-scripts.md) | Entry-point scripts with exit codes | Accepted |
 
 ## Adding an ADR
 

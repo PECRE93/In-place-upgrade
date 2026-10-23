@@ -4,9 +4,9 @@
 
 .DESCRIPTION
     Bootstrap  Installs the pinned versions of Pester and PSScriptAnalyzer for the current user.
-    Analyze    Runs PSScriptAnalyzer on src with PSScriptAnalyzerSettings.psd1.
+    Analyze    Runs PSScriptAnalyzer on src and scripts with PSScriptAnalyzerSettings.psd1.
     Test       Runs the Pester tests and writes out/testResults.xml.
-    Package    Writes out/InPlaceUpgrade-<version>.zip and out/release-notes.md (taken from CHANGELOG.md).
+    Package    Writes out/InPlaceUpgrade-<version>.zip (scripts and module) and out/release-notes.md (taken from CHANGELOG.md).
 
 .EXAMPLE
     ./build.ps1 -Task Bootstrap, Analyze, Test
@@ -27,6 +27,7 @@ $requiredModules = [ordered]@{
 }
 $moduleName = 'InPlaceUpgrade'
 $sourcePath = Join-Path -Path $PSScriptRoot -ChildPath "src\$moduleName"
+$scriptsPath = Join-Path -Path $PSScriptRoot -ChildPath 'scripts'
 $outputPath = Join-Path -Path $PSScriptRoot -ChildPath 'out'
 
 function Import-BuildModule {
@@ -56,7 +57,9 @@ if ($Task -contains 'Bootstrap') {
 if ($Task -contains 'Analyze') {
     Import-BuildModule -Name PSScriptAnalyzer
     $settingsPath = Join-Path -Path $PSScriptRoot -ChildPath 'PSScriptAnalyzerSettings.psd1'
-    $findings = @(Invoke-ScriptAnalyzer -Path $sourcePath -Recurse -Settings $settingsPath)
+    $findings = @(foreach ($path in $sourcePath, $scriptsPath) {
+            Invoke-ScriptAnalyzer -Path $path -Recurse -Settings $settingsPath
+        })
     if ($findings.Count -gt 0) {
         $findings | Format-Table -Property Severity, RuleName, ScriptName, Line, Message -AutoSize -Wrap | Out-String -Width 200 | Write-Host
         throw "PSScriptAnalyzer reported $($findings.Count) finding(s)."
@@ -81,7 +84,7 @@ if ($Task -contains 'Package') {
     New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
 
     $zipPath = Join-Path -Path $outputPath -ChildPath "$moduleName-$version.zip"
-    Compress-Archive -Path $sourcePath -DestinationPath $zipPath -Force
+    Compress-Archive -Path $sourcePath, (Join-Path -Path $scriptsPath -ChildPath '*.ps1') -DestinationPath $zipPath -Force
 
     # The release notes are this version's section of CHANGELOG.md.
     $changelog = @(Get-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath 'CHANGELOG.md'))

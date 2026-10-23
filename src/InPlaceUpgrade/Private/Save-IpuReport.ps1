@@ -11,7 +11,7 @@ function Save-IpuReport {
     )
 
     if (-not (Test-Path -Path $OutputPath)) {
-        New-Item -Path $OutputPath -ItemType Directory -Force -ErrorAction Stop | Out-Null
+        Protect-IpuDirectory -Directory (New-Item -Path $OutputPath -ItemType Directory -Force -ErrorAction Stop)
     }
 
     $fileName = '{0}-{1}-{2}.json' -f $Report.ComputerName, $Report.Phase.ToLowerInvariant(), [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')

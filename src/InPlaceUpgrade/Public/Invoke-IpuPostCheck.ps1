@@ -17,6 +17,7 @@ function Invoke-IpuPostCheck {
 
     .PARAMETER OutputPath
         Folder for the report and where the baseline is looked up. Defaults to %ProgramData%\InPlaceUpgrade.
+        A folder that the command creates on a local disk is accessible only to administrators, SYSTEM and you.
 
     .PARAMETER PassThru
         Returns the report object, for example to act on OverallStatus in a script.

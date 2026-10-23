@@ -23,11 +23,15 @@
                     continue
                 }
 
+                # Newer versions start some built-in services on demand, so a service that is now Manual is fine.
                 $after = $current[$service.Name]
                 if (-not $after) {
                     '{0} (missing)' -f $service.Name
                 }
-                elseif ($after.State -ne 'Running') {
+                elseif ($after.StartMode -eq 'Disabled') {
+                    '{0} (disabled)' -f $service.Name
+                }
+                elseif ($after.StartMode -eq 'Auto' -and $after.State -ne 'Running') {
                     '{0} ({1})' -f $service.Name, $after.State
                 }
             })

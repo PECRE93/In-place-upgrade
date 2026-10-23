@@ -51,6 +51,20 @@ Describe 'Post-upgrade checks' {
             (Invoke-IpuTestCheck -Phase Post -Id 'POST-002' -Snapshot $snapshot -Baseline $baseline).Details | Should -Contain 'W32Time (missing)'
         }
 
+        It 'fails for a service that the upgrade disabled' {
+            $w32time = $snapshot.Services | Where-Object { $_.Name -eq 'W32Time' }
+            $w32time.State = 'Stopped'
+            $w32time.StartMode = 'Disabled'
+            (Invoke-IpuTestCheck -Phase Post -Id 'POST-002' -Snapshot $snapshot -Baseline $baseline).Details | Should -Contain 'W32Time (disabled)'
+        }
+
+        It 'accepts a service that the new version starts on demand' {
+            $w32time = $snapshot.Services | Where-Object { $_.Name -eq 'W32Time' }
+            $w32time.State = 'Stopped'
+            $w32time.StartMode = 'Manual'
+            (Invoke-IpuTestCheck -Phase Post -Id 'POST-002' -Snapshot $snapshot -Baseline $baseline).Status | Should -Be 'Pass'
+        }
+
         It 'ignores services listed in the settings' {
             ($snapshot.Services | Where-Object { $_.Name -eq 'sppsvc' }).State = 'Stopped'
             (Invoke-IpuTestCheck -Phase Post -Id 'POST-002' -Snapshot $snapshot -Baseline $baseline).Status | Should -Be 'Pass'
@@ -73,6 +87,11 @@ Describe 'Post-upgrade checks' {
             $result = Invoke-IpuTestCheck -Phase Post -Id 'POST-003' -Snapshot $snapshot -Baseline $baseline
             $result.Status | Should -Be 'Fail'
             $result.Details | Should -Contain 'Web-Server'
+        }
+
+        It 'ignores features that newer versions removed' {
+            $baseline.Features = @($baseline.Features) + @('PowerShell-V2', 'Server-Gui-Shell')
+            (Invoke-IpuTestCheck -Phase Post -Id 'POST-003' -Snapshot $snapshot -Baseline $baseline).Status | Should -Be 'Pass'
         }
     }
 

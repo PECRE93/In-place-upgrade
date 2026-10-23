@@ -28,7 +28,7 @@ The tool only reads from the server. The JSON report is the only thing it writes
    C:\Tools\InPlaceUpgrade\Invoke-PreUpgradeCheck.ps1 -TargetVersion 2022
    ```
 
-   Fix every FAIL, review every WARNING and run it again. The report, which includes the baseline, is saved as `C:\ProgramData\InPlaceUpgrade\<computer>-pre-<timestamp>.json`.
+   Fix every FAIL, review every WARNING and run it again. The report, which includes the baseline, is saved as `C:\ProgramData\InPlaceUpgrade\<computer>-pre-<timestamp>.json`. The tool creates that folder with access for administrators and SYSTEM only, so nobody else can add a fake baseline.
 
 3. Back up the server or snapshot its disks, then run the upgrade. On Azure, follow [In-place upgrade for VMs running Windows Server in Azure](https://learn.microsoft.com/azure/virtual-machines/windows-in-place-upgrade). Run the pre-check before you attach the upgrade media, or the post-check reports the media disk as a missing volume once it's detached.
 

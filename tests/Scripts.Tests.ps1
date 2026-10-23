@@ -57,6 +57,7 @@ Describe 'Entry-point scripts' {
         Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith {
             $pending = New-IpuTestSnapshot
             $pending.PendingReboot.IsPending = $true
+            $pending.PendingReboot.Reasons = @('Windows Update')
             $pending
         }
         & $preScript -TargetVersion 2022 -OutputPath $outputPath

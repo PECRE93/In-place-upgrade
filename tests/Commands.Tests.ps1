@@ -50,6 +50,26 @@ Describe 'Invoke-IpuPreCheck and Invoke-IpuPostCheck' {
         { Invoke-IpuPostCheck -OutputPath $outputPath } | Should -Throw '*No pre-check report*'
     }
 
+    It 'limits a report folder it creates to administrators, SYSTEM and the current user' {
+        Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith { New-IpuTestSnapshot }
+        Invoke-IpuPreCheck -TargetVersion 2022 -OutputPath $outputPath
+
+        $acl = Get-Acl -Path $outputPath
+        $acl.AreAccessRulesProtected | Should -BeTrue
+        $expected = @('S-1-5-32-544', 'S-1-5-18', [Security.Principal.WindowsIdentity]::GetCurrent().User.Value) | Sort-Object -Unique
+        $actual = $acl.GetAccessRules($true, $true, [Security.Principal.SecurityIdentifier]) | ForEach-Object { $_.IdentityReference.Value } | Sort-Object -Unique
+        ($actual -join ',') | Should -Be ($expected -join ',')
+    }
+
+    It 'keeps the permissions of an existing report folder' {
+        Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith { New-IpuTestSnapshot }
+        New-Item -Path $outputPath -ItemType Directory | Out-Null
+        $before = (Get-Acl -Path $outputPath).Sddl
+
+        Invoke-IpuPreCheck -TargetVersion 2022 -OutputPath $outputPath
+        (Get-Acl -Path $outputPath).Sddl | Should -Be $before
+    }
+
     It 'refuses a baseline from another computer' {
         New-Item -Path $outputPath -ItemType Directory | Out-Null
         $path = Join-Path -Path $outputPath -ChildPath 'other.json'

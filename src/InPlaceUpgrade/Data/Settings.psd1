@@ -16,8 +16,19 @@
         'wuauserv'
     )
 
-    # POST-003: roles and features (wildcards allowed) that a newer version may remove.
-    IgnoredFeatures          = @()
+    # POST-003: roles and features (wildcards allowed) that newer versions removed or merged, such as the 2012 R2
+    # GUI features (an installation option since 2016) and PowerShell-V2 (removed in Windows Server 2025).
+    IgnoredFeatures          = @(
+        'Desktop-Experience'
+        'InkAndHandwritingServices'
+        'PowerShell-V2'
+        'Server-Gui-Mgmt-Infra'
+        'Server-Gui-Shell'
+        'User-Interfaces-Infra'
+        'Windows-Defender-Features'
+        'Windows-Defender-Gui'
+        'XPS-Viewer'
+    )
 
     # POST-004: TCP ports that don't have to listen after the upgrade.
     IgnoredPorts             = @()

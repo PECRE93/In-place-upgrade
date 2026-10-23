@@ -76,6 +76,12 @@ Describe 'Pre-upgrade checks' {
             $result.Status | Should -Be 'Fail'
             $result.Message | Should -BeLike '*Windows Update*'
         }
+
+        It 'only warns when nothing but file rename operations are pending' {
+            $snapshot.PendingReboot.IsPending = $true
+            $snapshot.PendingReboot.Reasons = @('Pending file rename operations')
+            (Invoke-IpuTestCheck -Phase Pre -Id 'PRE-004' -Snapshot $snapshot).Status | Should -Be 'Warning'
+        }
     }
 
     Context 'PRE-005 Not a failover cluster node' {

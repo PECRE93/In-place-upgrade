@@ -1,0 +1,15 @@
+# Build output: test results, release zip and notes
+out/
+
+# Reports from running the tool inside a working copy
+reports/
+
+# Editors and operating systems
+.vs/
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store

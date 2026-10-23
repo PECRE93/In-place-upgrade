@@ -1,0 +1,33 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check that the tag matches the module version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Test-ModuleManifest -Path src/InPlaceUpgrade/InPlaceUpgrade.psd1).Version.ToString()
+          if ($env:TAG -ne "v$version") { throw "Tag $env:TAG doesn't match ModuleVersion $version." }
+
+      - name: Build, test and package
+        run: ./build.ps1 -Task Bootstrap, Analyze, Test, Package
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create $env:TAG (Get-Item -Path out/*.zip).FullName --title $env:TAG --notes-file out/release-notes.md --verify-tag

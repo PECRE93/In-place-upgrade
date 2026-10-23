@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Analyze and test (${{ matrix.shell }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # powershell = Windows PowerShell 5.1, as on the servers; pwsh = PowerShell 7.
+        shell: [powershell, pwsh]
+    defaults:
+      run:
+        shell: ${{ matrix.shell }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install build dependencies
+        run: ./build.ps1 -Task Bootstrap
+
+      - name: Analyze and test
+        run: ./build.ps1 -Task Analyze, Test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.shell }}
+          path: out/testResults.xml

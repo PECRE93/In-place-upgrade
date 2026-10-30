@@ -57,11 +57,17 @@ Write an [ADR](docs/adr/README.md) when you change how the tool is structured, w
 ## Releasing
 
 1. In a pull request, set `ModuleVersion` in `src/InPlaceUpgrade/InPlaceUpgrade.psd1`, rename **Unreleased** in the changelog to `[x.y.z] - YYYY-MM-DD`, add a new empty **Unreleased** section and update the links at the bottom.
-2. After the merge, tag the merge commit and push the tag:
+2. If the release changes `src/`, run the pre-check once on a Windows Server 2012 R2 test VM with Windows PowerShell 4.0. CI has no PowerShell 4.0, and the analyzer finds missing commands, types and syntax, but not differences in behavior.
+3. Optionally, run **Actions > Release > Run workflow** on the branch. This dry run tests and packages the branch and keeps the zip and the release notes as a workflow artifact, without publishing anything.
+4. After the merge, tag the merge commit on `main` with an annotated tag and push the tag:
 
    ```powershell
-   git tag vx.y.z
+   git switch main
+   git pull
+   git tag -a vx.y.z -m "vx.y.z"
    git push origin vx.y.z
    ```
 
-3. The release workflow builds and tests, then publishes the GitHub release with the zip, its SHA-256 checksum and the release notes. In a public repository it also signs the build provenance of the zip.
+5. The release workflow runs the full CI matrix on the tagged commit, checks that the tag matches `ModuleVersion` and is on `main`, and publishes the GitHub release with the zip, its SHA-256 checksum and the changelog section as release notes. In a public repository it also signs the build provenance of the zip.
+
+Never change or delete a published release or its tag; fix a release with a new patch version. With **Release immutability** turned on in the repository settings, GitHub enforces this.

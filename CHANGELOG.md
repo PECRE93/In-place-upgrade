@@ -6,15 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Fixed
-
-- Windows PowerShell misread non-ASCII characters, such as in volume labels and application names, in a baseline written by PowerShell 7, so the post-check reported them as changed.
-
-### Security
-
-- The checks refuse a report folder or baseline on a local disk that isn't owned by the Administrators group, SYSTEM or the current user. Any user could create `%ProgramData%\InPlaceUpgrade` before the tool's first run and then add a fake baseline for the post-check.
-
-## [0.1.0] - 2026-10-23
+## [0.1.0] - 2026-10-30
 
 ### Added
 
@@ -22,9 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Scripts `Invoke-PreUpgradeCheck.ps1` and `Invoke-PostUpgradeCheck.ps1` in `scripts/`, which run the checks and return the result as an exit code (0 = Pass, 1 = Fail or the check couldn't run, 2 = Warning). The release zip contains them next to the module.
 - Snapshot of the server (operating system, domain membership, volumes, pending restart, services, roles and features, applications, listening ports, NIC teams, licensing, Azure metadata), saved in the pre-check report as the baseline for the post-check.
 - Pre-upgrade checks PRE-001 to PRE-009 and post-upgrade checks POST-001 to POST-008, see [docs/checks.md](docs/checks.md).
-- JSON reports in `%ProgramData%\InPlaceUpgrade`, a folder that the tool creates with access for administrators and SYSTEM only, and a color-coded console summary.
+- JSON reports in `%ProgramData%\InPlaceUpgrade`, a folder that the tool creates with access for administrators, SYSTEM and the current user only, and a color-coded console summary. The tool refuses a report folder or baseline on a local disk that anyone else owns, so nobody without administrator rights can plant a fake baseline.
 - Repository scaffolding: build script, Pester tests with code coverage, PSScriptAnalyzer rules including Windows PowerShell 4.0 compatibility, CI on Windows Server 2022 and 2025, architecture decision records, a contributing guide, a security policy, issue templates and code owners.
-- Release workflow that publishes the zip with a SHA-256 checksum and signed build provenance.
+- Release workflow that runs the full CI matrix on the tagged commit, checks that the tag is on `main` and matches the module version, and publishes the zip (scripts, module and documentation) with a SHA-256 checksum and signed build provenance. Run by hand, it's a dry run that publishes nothing.
 - Description of the report format in [docs/report.md](docs/report.md).
 
 [Unreleased]: https://github.com/PECRE93/In-place-upgrade/compare/v0.1.0...HEAD

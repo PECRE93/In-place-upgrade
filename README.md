@@ -23,7 +23,7 @@ The tool only reads from the server. The JSON report is the only thing it writes
 
 ## Usage
 
-1. Download the zip of a [release](https://github.com/PECRE93/In-place-upgrade/releases), unblock it with `Unblock-File .\InPlaceUpgrade-x.y.z.zip` and extract it on the server, for example to `C:\Tools\InPlaceUpgrade`. The zip holds the two scripts from [scripts/](scripts) and the `InPlaceUpgrade` module folder. A copy of the repository works as well.
+1. Download the zip of a [release](https://github.com/PECRE93/In-place-upgrade/releases), unblock it with `Unblock-File .\InPlaceUpgrade-x.y.z.zip` and extract it on the server, for example to `C:\Tools\InPlaceUpgrade`. The zip holds the two scripts from [scripts/](scripts), the `InPlaceUpgrade` module folder and the documentation. A copy of the repository works as well.
 
    To check that the zip is the one the release workflow built, compare `(Get-FileHash .\InPlaceUpgrade-x.y.z.zip).Hash` with the `.sha256` file of the release, or run `gh attestation verify .\InPlaceUpgrade-x.y.z.zip --repo PECRE93/In-place-upgrade`.
 

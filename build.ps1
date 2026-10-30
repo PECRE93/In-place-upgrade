@@ -6,7 +6,7 @@
     Bootstrap  Installs the pinned versions of Pester and PSScriptAnalyzer for the current user.
     Analyze    Runs PSScriptAnalyzer on src and scripts with PSScriptAnalyzerSettings.psd1.
     Test       Runs the Pester tests with code coverage and writes out/testResults.xml and out/coverage.xml.
-    Package    Writes out/InPlaceUpgrade-<version>.zip (scripts and module), its SHA-256 checksum and out/release-notes.md (taken from CHANGELOG.md).
+    Package    Writes out/InPlaceUpgrade-<version>.zip (scripts, module and documentation), its SHA-256 checksum and out/release-notes.md (taken from CHANGELOG.md).
 
 .EXAMPLE
     ./build.ps1 -Task Bootstrap, Analyze, Test
@@ -45,11 +45,24 @@ if ($Task -contains 'Bootstrap') {
             continue
         }
         Write-Host "Installing $name $version"
-        if (Get-Command -Name 'Install-PSResource' -ErrorAction SilentlyContinue) {
-            Install-PSResource -Name $name -Version $version -Scope CurrentUser -TrustRepository -Quiet
-        }
-        else {
-            Install-Module -Name $name -RequiredVersion $version -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
+        # The PowerShell Gallery fails now and then; a retry keeps that from failing a CI run or a release.
+        for ($attempt = 1; $attempt -le 3; $attempt++) {
+            try {
+                if (Get-Command -Name 'Install-PSResource' -ErrorAction SilentlyContinue) {
+                    Install-PSResource -Name $name -Version $version -Scope CurrentUser -TrustRepository -Quiet
+                }
+                else {
+                    Install-Module -Name $name -RequiredVersion $version -Scope CurrentUser -Force -SkipPublisherCheck -AllowClobber
+                }
+                break
+            }
+            catch {
+                if ($attempt -eq 3) {
+                    throw
+                }
+                Write-Warning -Message "Installing $name failed, trying again in 20 seconds: $($_.Exception.Message)"
+                Start-Sleep -Seconds 20
+            }
         }
     }
 }
@@ -100,13 +113,34 @@ if ($Task -contains 'Test') {
 }
 
 if ($Task -contains 'Package') {
-    $version = (Test-ModuleManifest -Path (Join-Path -Path $sourcePath -ChildPath "$moduleName.psd1")).Version.ToString()
+    $manifest = Test-ModuleManifest -Path (Join-Path -Path $sourcePath -ChildPath "$moduleName.psd1")
+    $version = $manifest.Version.ToString()
+    $repository = $manifest.ProjectUri.AbsolutePath.Trim('/')
     New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
 
     $zipPath = Join-Path -Path $outputPath -ChildPath "$moduleName-$version.zip"
-    Compress-Archive -Path $sourcePath, (Join-Path -Path $scriptsPath -ChildPath '*.ps1') -DestinationPath $zipPath -Force
+    $zipName = Split-Path -Path $zipPath -Leaf
+
+    # The scripts sit next to the module folder; the documentation is for servers without internet access.
+    $packagePath = Join-Path -Path $outputPath -ChildPath 'package'
+    if (Test-Path -Path $packagePath) {
+        Remove-Item -Path $packagePath -Recurse -Force
+    }
+    New-Item -Path (Join-Path -Path $packagePath -ChildPath 'docs') -ItemType Directory -Force | Out-Null
+    Copy-Item -Path $sourcePath -Destination $packagePath -Recurse
+    Copy-Item -Path (Join-Path -Path $scriptsPath -ChildPath '*.ps1') -Destination $packagePath
+    $documents = @('README.md', 'CHANGELOG.md', 'SECURITY.md', 'docs\checks.md', 'docs\report.md')
+    if (Test-Path -Path (Join-Path -Path $PSScriptRoot -ChildPath 'LICENSE')) {
+        $documents += 'LICENSE'
+    }
+    foreach ($document in $documents) {
+        Copy-Item -Path (Join-Path -Path $PSScriptRoot -ChildPath $document) -Destination (Join-Path -Path $packagePath -ChildPath $document)
+    }
+    Compress-Archive -Path (Join-Path -Path $packagePath -ChildPath '*') -DestinationPath $zipPath -Force
+    Remove-Item -Path $packagePath -Recurse -Force
+
     $hash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    Set-Content -Path "$zipPath.sha256" -Value "$hash  $(Split-Path -Path $zipPath -Leaf)" -Encoding Ascii
+    Set-Content -Path "$zipPath.sha256" -Value "$hash  $zipName" -Encoding Ascii
 
     # The release notes are this version's section of CHANGELOG.md.
     $changelog = @(Get-Content -Path (Join-Path -Path $PSScriptRoot -ChildPath 'CHANGELOG.md'))
@@ -127,6 +161,19 @@ if ($Task -contains 'Package') {
         throw "CHANGELOG.md has no entries for version $version."
     }
     $notes = ($changelog[($start + 1)..($end - 1)] -join [Environment]::NewLine).Trim()
-    Set-Content -Path (Join-Path -Path $outputPath -ChildPath 'release-notes.md') -Value $notes -Encoding UTF8
+    # Links in the changelog are relative to the repository; on the release page they must be absolute.
+    $notes = $notes -replace '\]\((?!https?://|#)([^)]+)\)', "](https://github.com/$repository/blob/v$version/`$1)"
+    $verification = @(
+        ''
+        '### Verify the download'
+        ''
+        "SHA-256 of ``$zipName``: ``$hash``"
+        ''
+        '```powershell'
+        "(Get-FileHash -Path .\$zipName -Algorithm SHA256).Hash"
+        "gh attestation verify .\$zipName --repo $repository"
+        '```'
+    )
+    Set-Content -Path (Join-Path -Path $outputPath -ChildPath 'release-notes.md') -Value (@($notes) + $verification) -Encoding UTF8
     Write-Host "Packaged $zipPath"
 }

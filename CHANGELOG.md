@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows PowerShell misread non-ASCII characters, such as in volume labels and application names, in a baseline written by PowerShell 7, so the post-check reported them as changed.
+
+### Security
+
+- The checks refuse a report folder or baseline on a local disk that isn't owned by the Administrators group, SYSTEM or the current user. Any user could create `%ProgramData%\InPlaceUpgrade` before the tool's first run and then add a fake baseline for the post-check.
+
 ## [0.1.0] - 2026-10-23
 
 ### Added

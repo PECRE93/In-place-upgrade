@@ -33,7 +33,7 @@ The tool only reads from the server. The JSON report is the only thing it writes
    C:\Tools\InPlaceUpgrade\Invoke-PreUpgradeCheck.ps1 -TargetVersion 2022
    ```
 
-   Fix every FAIL, review every WARNING and run it again. The report, which includes the baseline, is saved as `C:\ProgramData\InPlaceUpgrade\<computer>-pre-<timestamp>.json`. The tool creates that folder with access for administrators and SYSTEM only, so nobody else can add a fake baseline.
+   Fix every FAIL, review every WARNING and run it again. The report, which includes the baseline, is saved as `C:\ProgramData\InPlaceUpgrade\<computer>-pre-<timestamp>.json`. The tool creates that folder with access for administrators, SYSTEM and you only, so nobody else can add a fake baseline. It refuses a report folder or baseline on a local disk that anyone else owns, such as a folder another user created there first.
 
 3. Back up the server or snapshot its disks, then run the upgrade. On Azure, follow [In-place upgrade for VMs running Windows Server in Azure](https://learn.microsoft.com/azure/virtual-machines/windows-in-place-upgrade). Run the pre-check before you attach the upgrade media, or the post-check reports the media disk as a missing volume once it's detached.
 
@@ -82,6 +82,7 @@ On Azure VMs, also consider Microsoft's [Windows OS Upgrade Assessment Tool](htt
 | A script "is not digitally signed" | The files are still marked as downloaded. Run `Unblock-File` on the zip before you extract it, or on the extracted files. |
 | A check has status **Error** | The data it needs couldn't be collected. The `CollectionErrors` section of the report says why. |
 | "No pre-check report for ..." | Run the pre-check first. Give the post-check the same `-OutputPath` as the pre-check, or the report itself with `-BaselinePath`. |
+| "... isn't owned by the Administrators group, SYSTEM or you" | Someone else created the report folder or baseline, and could have changed it. Find out who. Then delete the folder and run the pre-check again or, if you trust the baseline, pass a copy of it with `-BaselinePath`. |
 | A post-check flags a service, feature or application that changes by design | Add it to the ignore lists in [Settings.psd1](src/InPlaceUpgrade/Data/Settings.psd1) through a pull request. |
 
 ## Repository layout

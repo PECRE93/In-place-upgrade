@@ -70,6 +70,15 @@ Describe 'Invoke-IpuPreCheck and Invoke-IpuPostCheck' {
         (Get-Acl -Path $outputPath).Sddl | Should -Be $before
     }
 
+    It 'refuses an existing report folder that someone else owns' {
+        Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith { New-IpuTestSnapshot }
+        Mock -ModuleName InPlaceUpgrade -CommandName Test-IpuTrustedOwner -MockWith { $false }
+        New-Item -Path $outputPath -ItemType Directory | Out-Null
+
+        { Invoke-IpuPreCheck -TargetVersion 2022 -OutputPath $outputPath } | Should -Throw '*Delete the folder*'
+        Get-ChildItem -Path $outputPath | Should -BeNullOrEmpty
+    }
+
     It 'refuses a baseline from another computer' {
         New-Item -Path $outputPath -ItemType Directory | Out-Null
         $path = Join-Path -Path $outputPath -ChildPath 'other.json'
@@ -84,6 +93,32 @@ Describe 'Invoke-IpuPreCheck and Invoke-IpuPostCheck' {
         ConvertTo-Json -InputObject @{ Phase = 'Pre'; ComputerName = $env:COMPUTERNAME; TargetVersion = '2022'; Snapshot = @{ SchemaVersion = 99 } } |
             Set-Content -Path $path
         { Invoke-IpuPostCheck -BaselinePath $path -OutputPath $outputPath } | Should -Throw '*schema version 99*'
+    }
+
+    It 'refuses a baseline that someone else owns' {
+        Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith { New-IpuTestSnapshot }
+        Invoke-IpuPreCheck -TargetVersion 2022 -OutputPath $outputPath
+
+        Mock -ModuleName InPlaceUpgrade -CommandName Test-IpuTrustedOwner -MockWith { $false }
+        { Invoke-IpuPostCheck -OutputPath $outputPath } | Should -Throw '*someone else may have created or changed it*'
+    }
+
+    It 'reads a baseline without a byte order mark, as PowerShell 7 writes it' {
+        Mock -ModuleName InPlaceUpgrade -CommandName Get-IpuSnapshot -MockWith {
+            $upgraded = New-IpuTestSnapshot
+            $upgraded.OperatingSystem.BuildNumber = 20348
+            ($upgraded.Volumes | Where-Object { $_.DriveLetter -eq 'D:' }).Label = "Donn$([char]0x00E9)es"
+            $upgraded
+        }
+        $baseline = New-IpuTestSnapshot
+        ($baseline.Volumes | Where-Object { $_.DriveLetter -eq 'D:' }).Label = "Donn$([char]0x00E9)es"
+        New-Item -Path $outputPath -ItemType Directory | Out-Null
+        $path = Join-Path -Path $outputPath -ChildPath 'baseline.json'
+        $json = ConvertTo-Json -InputObject @{ Phase = 'Pre'; ComputerName = $env:COMPUTERNAME; TargetVersion = '2022'; Snapshot = $baseline } -Depth 10
+        [System.IO.File]::WriteAllText($path, $json, (New-Object -TypeName System.Text.UTF8Encoding -ArgumentList $false))
+
+        $post = Invoke-IpuPostCheck -BaselinePath $path -OutputPath $outputPath -PassThru
+        ($post.Results | Where-Object { $_.Id -eq 'POST-005' }).Status | Should -Be 'Pass'
     }
 }
 

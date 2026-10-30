@@ -17,7 +17,8 @@ function Invoke-IpuPreCheck {
 
     .PARAMETER OutputPath
         Folder for the report. The default, %ProgramData%\InPlaceUpgrade, survives the upgrade. A folder
-        that the command creates on a local disk is accessible only to administrators, SYSTEM and you.
+        that the command creates on a local disk is accessible only to administrators, SYSTEM and you. An
+        existing folder on a local disk must be owned by the Administrators group, SYSTEM or you.
 
     .PARAMETER PassThru
         Returns the report object, for example to act on OverallStatus in a script.

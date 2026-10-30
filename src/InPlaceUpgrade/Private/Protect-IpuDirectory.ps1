@@ -8,8 +8,7 @@ function Protect-IpuDirectory {
     )
 
     # Shares and mapped drives keep their permissions.
-    $root = $Directory.Root.FullName
-    if ($root -notmatch '^[a-z]:\\$' -or (New-Object -TypeName System.IO.DriveInfo -ArgumentList $root).DriveType -ne 'Fixed') {
+    if (-not (Test-IpuLocalDisk -Path $Directory.FullName)) {
         return
     }
 

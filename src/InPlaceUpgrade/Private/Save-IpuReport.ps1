@@ -13,6 +13,10 @@ function Save-IpuReport {
     if (-not (Test-Path -Path $OutputPath)) {
         Protect-IpuDirectory -Directory (New-Item -Path $OutputPath -ItemType Directory -Force -ErrorAction Stop)
     }
+    elseif (-not (Test-IpuTrustedOwner -Path $OutputPath)) {
+        # Any user can create the folder under ProgramData before the tool does.
+        throw "The report folder '$OutputPath' isn't owned by the Administrators group, SYSTEM or you, so its owner could change the reports in it. Delete the folder, or use another -OutputPath."
+    }
 
     $fileName = '{0}-{1}-{2}.json' -f $Report.ComputerName, $Report.Phase.ToLowerInvariant(), [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ')
     $path = Join-Path -Path $OutputPath -ChildPath $fileName

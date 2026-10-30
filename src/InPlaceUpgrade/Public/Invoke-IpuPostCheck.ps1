@@ -13,11 +13,13 @@ function Invoke-IpuPostCheck {
 
     .PARAMETER BaselinePath
         Path to the pre-check report to compare with. Defaults to the newest pre-check report for this
-        computer in OutputPath.
+        computer in OutputPath. On a local disk, the report must be owned by the Administrators group,
+        SYSTEM or you.
 
     .PARAMETER OutputPath
         Folder for the report and where the baseline is looked up. Defaults to %ProgramData%\InPlaceUpgrade.
         A folder that the command creates on a local disk is accessible only to administrators, SYSTEM and you.
+        An existing folder on a local disk must be owned by the Administrators group, SYSTEM or you.
 
     .PARAMETER PassThru
         Returns the report object, for example to act on OverallStatus in a script.
@@ -56,7 +58,12 @@ function Invoke-IpuPostCheck {
         $BaselinePath = $latest.FullName
     }
 
-    $baseline = Get-Content -Path $BaselinePath -Raw -ErrorAction Stop | ConvertFrom-Json
+    if (-not (Test-IpuTrustedOwner -Path $BaselinePath)) {
+        throw "'$BaselinePath' isn't owned by the Administrators group, SYSTEM or you, so someone else may have created or changed it. If you're sure it's genuine, copy it and pass the copy with -BaselinePath."
+    }
+
+    # PowerShell 7 writes UTF-8 without a byte order mark, which Windows PowerShell would read as ANSI.
+    $baseline = Get-Content -Path $BaselinePath -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json
     $baselineSnapshot = Get-IpuProperty -InputObject $baseline -Name 'Snapshot'
     if ((Get-IpuProperty -InputObject $baseline -Name 'Phase') -ne 'Pre' -or $null -eq $baselineSnapshot) {
         throw "'$BaselinePath' is not a pre-check report."
